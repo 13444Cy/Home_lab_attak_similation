@@ -82,3 +82,16 @@ eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         inet 192.168.56.103  netmask 255.255.255.0  broadcast 192.168.56.255
         inet6 fe80::db05:1d1d:45b3:6ef9  prefixlen 64  scopeid 0x20<link>
         ether 08:00:27:bb:7c:d4  txqueuelen 1000  (Ethernet)
+**Metasploitable (`ifconfig`):**
+msfadmin@metasploitable:~$ ifconfig eth0
+eth0      Link encap:Ethernet  HWaddr 08:00:27:c9:56:d0  
+          inet addr:192.168.56.4  Bcast:192.168.56.255  Mask:255.255.255.0
+
+### Ping Test:
+(kali@kali)-[~] $ ping -c 4 192.168.56.4
+PING 192.168.56.4 (192.168.56.4) 56(84) bytes of data.
+64 bytes from 192.168.56.4: icmp_seq=1 ttl=64 time=8.22 ms
+64 bytes from 192.168.56.4: icmp_seq=2 ttl=64 time=2.97 ms
+64 bytes from 192.168.56.4: icmp_seq=3 ttl=64 time=1.38 ms
+64 bytes from 192.168.56.4: icmp_seq=4 ttl=64 time=1.91 ms
+### 4. Phase 1 — Reconnaissance & Enumeration
