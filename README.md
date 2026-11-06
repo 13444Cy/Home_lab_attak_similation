@@ -52,8 +52,7 @@ Build an isolated virtual environment to:
 | **Metasploitable 2** | Target | Host-Only (`vboxnet0`) | — | `192.168.56.4` |
 
 ### Topology
-
-`![Topology](https://github.com/13444Cy/Home_lab_attak_similation/evidence/01-architecture-virtualbox-hostnetworkmanager.png)` 
+![Topology](/evidence/01-architecture-virtualbox-hostnetworkmanager.png)
 
 ---
 
