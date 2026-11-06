@@ -226,6 +226,6 @@ Findings are grouped by evidence tier:
 
 | ID | Finding | Port / Service | CVE | Severity | Impact Demonstrated |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| F-01 | vsftpd 2.3.4 backdoor | 21 / FTP | CVE-2011-2523 | 🔴 Critical |	| Unauthenticated remote root shell (confirmed with id). |
+| F-01 | vsftpd 2.3.4 backdoor | 21 / FTP | CVE-2011-2523 | 🔴 Critical | Unauthenticated remote root shell (confirmed with id). |
 | F-02 | Exposed bindshell | 1524 / TCP | — | 🔴 Critical | Instant root shell, no exploit required. |
 
