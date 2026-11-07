@@ -229,3 +229,100 @@ Findings are grouped by evidence tier:
 | F-01 | vsftpd 2.3.4 backdoor | 21 / FTP | CVE-2011-2523 | 🔴 Critical | Unauthenticated remote root shell (confirmed with id). |
 | F-02 | Exposed bindshell | 1524 / TCP | — | 🔴 Critical | Instant root shell, no exploit required. |
 
+### 6.2 Observed Findings (Out of scope for this lab)
+
+| ID | Finding | Port / Service | Why not exploited | Recommended next step |
+| :--- | :--- | :--- | :--- | :--- |
+| F-03 | Samba command injection | 139, 445 / SMB | Out of scope for this iteration. | Test CVE-2007-2447 via exploit/multi/samba/usermap_script. |
+| F-04 | Telnet enabled | 23 / Telnet | Redundant (root already obtained). | Capture cleartext creds with tcpdump; then disable telnet. |
+| F-05	| Outdated OpenSSH (4.7p1) | 22 / SSH | No single decisive exploit; requires cred attacks. | Run ssh-audit; test weak credentials. |
+| F-06 | Default Web Apps | 80, 8180 | Not attempted. | Check Tomcat manager default creds.|
+
+### 6.3 Impact Statement
+
+A single unpatched, internet-exposed service (F-01) allows an unauthenticated attacker to obtain root-level control of the host in under a minute, with no valid credentials. This allows complete compromise of confidentiality, integrity, and availability.
+
+## 7. Mitigation & Remediation
+
+
+| Priority | Finding | Immediate Action	| Long-term Control |
+| :--- | :--- | :--- | :--- |
+| P1 | F-01 vsftpd backdoor | Disable FTP or upgrade vsftpd to a current release. | Software supply-chain verification; patch management SLA. |
+| P1 | F-02 Bindshell | Kill the listener on 1524. | Host firewall default-deny inbound; regular service audits.|
+| P2 | F-04 Telnet | Disable telnetd. | Enforce SSH-only administration. |
+
+**Hardening Commands:**
+
+```# Stop and disable FTP
+sudo systemctl stop vsftpd
+sudo systemctl disable vsftpd
+
+# Kill the bindshell listener
+sudo fuser -k 1524/tcp
+
+# Default-deny inbound with ufw
+sudo ufw default deny incoming
+sudo ufw allow from 192.168.56.0/24 to any port 22 proto tcp
+sudo ufw enable
+```
+
+## 8. Lessons Learned
+
+**Version detection is the whole game:** A bare port scan said "FTP is open." -sV said "FTP is open and it's a backdoored build." The second one is actionable.
+
+**Isolation is a control, not a convenience:** Host-Only networking meant I could detonate a root shell without worrying about reaching the internet.
+
+**Full-port scans matter:** Port 1524 never appears in a default scan — and it was a free root shell.
+
+**Automation fails, fundamentals don't:** Metasploit's module didn't fire on my setup; a three-line Netcat interaction did.
+
+**Offense informs defense:** Writing the remediation section forced me to think in terms of patch SLAs, firewall policy, and service audits.
+
+## 9. Repository Structure
+
+```
+home-lab-attack-simulation/
+├── README.md
+├── evidence/
+│   ├── 01-architecture-virtualbox-hostnetworkmanager.png
+│   ├── 02-gns3-topology.png
+│   ├── 03-kali-ip-a.png
+│   ├── 04-ping-success.png
+│   ├── 05-nmap-sV.png
+│   ├── 06-nmap-fullport.png
+│   ├── 07-nmap-vuln.png
+│   ├── 08-vsftpd-trigger.png
+│   └── 09-root-shell-id.png
+├── scans/
+│   ├── nmap-basic.txt
+│   ├── nmap-sV-O.txt
+│   ├── nmap-fullport.txt
+│   └── nmap-vuln-ftp.txt
+└── notes/
+    └── enumeration-summary.md
+```
+
+## 10. Appendix — Command Cheat Sheet
+
+```
+# --- Setup verification ---
+ip a
+ping -c 4 <TARGET_IP>
+
+# --- Reconnaissance ---
+nmap <TARGET_IP>
+sudo nmap -sV -O <TARGET_IP> -oA scans/nmap-sV-O
+sudo nmap -p- <TARGET_IP> -oA scans/nmap-fullport
+sudo nmap --script vuln -p 21 <TARGET_IP>
+
+# --- Exploitation: vsftpd backdoor (manual) ---
+nc <TARGET_IP> 21        # then: USER test:) / PASS test
+nc <TARGET_IP> 6200      # then: id
+
+# --- Remediation verification ---
+sudo ss -tulpn
+sudo nmap -p- <TARGET_IP>
+```
+
+
+
